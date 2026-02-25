@@ -1,0 +1,41 @@
+CREATE TABLE IF NOT EXISTS userAccount (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(255) NULL,
+    last_name VARCHAR(255) NULL,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    userpassword VARCHAR(255) NOT NULL
+);
+
+
+
+
+
+
+CREATE TABLE IF NOT EXISTS products (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    product_name VARCHAR(255) NOT NULL,
+    product_description VARCHAR(255) NOT NULL,
+
+    added_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_by INT NULL,
+    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    product_image VARCHAR(255),
+
+    CONSTRAINT fk_added_by
+        FOREIGN KEY (added_by)
+        REFERENCES userAccount(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_updated_by
+        FOREIGN KEY (updated_by)
+        REFERENCES userAccount(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
+
+
+

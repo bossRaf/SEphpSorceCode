@@ -1,15 +1,29 @@
-// Mag himo man folder insede htdocs and name it     img
 
 <?php
 include "function.php";
 session_start();
-
 include "templates/header.php";
 
-// Ensure only logged-in users can add products
+// Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['message'] = "You must be logged in to add a product.";
+    $_SESSION['message'] = "You must be logged in to update a product.";
     header("Location: login.php");
+    exit();
+}
+
+// Check for product ID
+if (!isset($_GET['id']) || empty($_GET['id'])) {
+    $_SESSION['message'] = "Invalid product ID.";
+    header("Location: index.php");
+    exit();
+}
+
+$id = $_GET['id'];
+$product = getProductById($id);
+
+if (!$product) {
+    $_SESSION['message'] = "Product not found.";
+    header("Location: index.php");
     exit();
 }
 
@@ -18,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $productDescription = $_POST['product_description'];
 
     // Handle image upload
-    $imageName = null; // default if no image uploaded
+    $imageName = $product['product_image']; // keep existing if no new upload
     if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === 0) {
         $targetDir = "img/";
         $imageName = time() . "_" . basename($_FILES["product_image"]["name"]);
@@ -26,18 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         move_uploaded_file($_FILES["product_image"]["tmp_name"], $targetFile);
     }
 
-    // Pass logged-in user ID as added_by
-    $addedBy = $_SESSION['user_id'];
-    
-    // Insert the product and get the ID immediately
-    $lastProductId = insertProduct($productName, $productDescription, $imageName, $addedBy);
+    $updatedBy = $_SESSION['user_id'];
 
-    if ($lastProductId) {
-        // Redirect to the product's details page using the product ID
-        header("Location: details.php?id=" . $lastProductId);
+    $updatedId = updateProductWithImage($id, $productName, $productDescription, $imageName, $updatedBy);
+
+    if ($updatedId) {
+        header("Location: details.php?id=" . $updatedId);
         exit();
     } else {
-        $_SESSION['message'] = "Failed to add product.";
+        $_SESSION['message'] = "Failed to update product.";
         header("Location: index.php");
         exit();
     }
@@ -45,9 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <div class="container my-4">
-    <h2 class="mb-3">Add New Product Form</h2>
+    <h2 class="mb-3">Update Product Form</h2>
 
-    <form method="POST" action="addProduct.php" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="product_name" class="form-label fw-bold">Product Name</label>
             <input type="text"
@@ -55,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    id="product_name"
                    name="product_name"
                    placeholder="Specify Product Name"
+                   value="<?php echo htmlspecialchars($product['product_name']); ?>"
                    required
                    minlength="3">
         </div>
@@ -66,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       name="product_description"
                       placeholder="Specify Product Description"
                       rows="8"
-                      required></textarea>
+                      required><?php echo htmlspecialchars($product['product_description']); ?></textarea>
         </div>
 
         <div class="mb-3">
@@ -75,11 +87,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    class="form-control"
                    id="product_image"
                    name="product_image"
-                   accept="image/*"
-                   required>
+                   accept="image/*">
+            <?php if (!empty($product['product_image'])): ?>
+                <small class="text-muted">Current Image: <?php echo htmlspecialchars($product['product_image']); ?></small>
+            <?php endif; ?>
         </div>
 
-        <button type="submit" class="btn btn-primary px-4 py-2">Save</button>
+        <button type="submit" class="btn btn-primary px-4 py-2">Update</button>
     </form>
 </div>
 

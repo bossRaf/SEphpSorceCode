@@ -1,37 +1,53 @@
 <?php
-require_once "function.php";
+include "function.php";
 session_start();
 
-// Display the message if it exists in the session
-if (isset($_SESSION['message'])) {
-    // Display the message above the header without blocking it
-    echo '<div class="alert alert-info text-left w-100" role="alert" style="margin: 0; background-color: white;">' . $_SESSION['message'] . '</div>';
-    unset($_SESSION['message']);  // Clear the message after showing it
+// Handle logout
+if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+    session_unset(); 
+    session_destroy(); 
+    header("Location: index.php");
+    exit();
 }
-include_once('templates/header.php'); // Start the session to fetch the message
 
 
-// Fetch all products to display
-$products = displayProductsTable();
+// Header and Products
+include "templates/header.php"; 
+
+$products = loadProducts();
 ?>
 
-<!-- MAIN CONTENT (BODY) -->
-<div class="container my-4">
+<div class="container my-4" id="products">
     <h2 class="mb-3">Products</h2>
+    
+   <div class="d-flex justify-content-between mb-3" style="max-width: 100%;">
+    
+    	<?php if (isset($_SESSION['user_id'])): ?>
+        	<a href="addProduct.php" class="btn fw-bold" style="background-color: lightgreen; border-color: lightgreen;">
+            	Add New Product
+        	</a>
+    	<?php else: ?>
+        	<div></div> <!-- empty div to keep spacing -->
+    	<?php endif; ?>
 
-    <!-- Add New Product Button -->
-    <a href="addProduct.php" class="btn btn-primary mb-3">Add New Product</a>
+    	<div style="max-width: 400px;">
+        	<div class="input-group">
+            	<input type="text" id="searchInput" class="form-control" placeholder="Search for product name...">
+            	<button id="searchBtn" class="btn btn-primary">Search</button>
+        	</div>
+    	</div>
+
+	</div>
 
     <?php if (empty($products)): ?>
         <div class="alert alert-warning">No products found.</div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
+            <table class="table table-striped table-hover align-middle" id="productsTable">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID</th> <!-- Keep the ID column header -->
+                        <th> </th>
                         <th>Product Name</th>
-                        <th>Product Description</th>
                         <th>Created At</th>
                     </tr>
                 </thead>
@@ -42,16 +58,72 @@ $products = displayProductsTable();
                                <a href="details.php?id=<?php echo htmlspecialchars($product['id']); ?>" class="btn btn-info btn-sm">View</a>
                             </td>
                             <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                            <td><?php echo htmlspecialchars($product['product_description']); ?></td>
                             <td><?php echo htmlspecialchars($product['created_at']); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
+    	<div class="mt-2">
+    		<strong>Total Products:</strong> <?php echo getTotalProducts(); ?>
+		</div>
     <?php endif; ?>
 </div>
 
-<?php include_once('templates/footer.php'); ?>
+<script>
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const rows = document.querySelectorAll('#productsTable tbody tr');
+const totalDiv = document.querySelector('#products .mt-2'); // Correct selector inside #products
+
+function updateTable() {
+    const input = searchInput.value.toLowerCase();
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        const match = name.includes(input) || input === '';
+        row.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+    });
+
+    const totalCount = rows.length;
+    totalDiv.innerHTML = `<strong>Total Products:</strong> ${visibleCount} out of ${totalCount}`;
+
+    // Show notice if no matches
+    let notice = document.getElementById('noMatchNotice');
+    if (visibleCount === 0) {
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = 'noMatchNotice';
+            notice.className = 'alert alert-warning mt-2';
+            notice.textContent = 'No matching products found.';
+            totalDiv.after(notice);
+        }
+    } else {
+        if (notice) notice.remove();
+    }
+}
+
+// Trigger search on button click
+searchBtn.addEventListener('click', updateTable);
+
+// Trigger search on Enter key
+searchInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        updateTable();
+    }
+});
+</script>
+
+<?php include "templates/footer.php"; ?>
+
+
+
+
+
+
+
 
 
